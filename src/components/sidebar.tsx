@@ -3,13 +3,16 @@
 import { useSession, signOut } from "next-auth/react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Home, LogOut, User } from "lucide-react"
+import { Home, FileText, LogOut, User } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { cn } from "@/lib/utils"
 
-const navItems = [{ href: "/dashboard", label: "首页", icon: Home }]
+const navItems = [
+  { href: "/dashboard", label: "首页", icon: Home },
+  { href: "/dashboard/invoices", label: "发票", icon: FileText },
+]
 
 export function Sidebar() {
   const { data: session } = useSession()
