@@ -2,8 +2,9 @@
 
 import type { InvoiceData } from "@/lib/invoice-types"
 
-const RED = "#c0392b"
-const RED_BORDER = `2px solid ${RED}`
+const TABLE_BORDER = "1px solid #333"
+const TABLE_BORDER_LIGHT = "1px solid #ccc"
+const COL_WIDTH = 130
 
 const SENDER = {
   name: "Zhi Zeng",
@@ -47,7 +48,6 @@ export function InvoicePreview({ data }: Props) {
       {/* --- TITLE --- */}
       <h1
         style={{
-          color: RED,
           fontSize: 22,
           fontWeight: 700,
           margin: "0 0 16px 0",
@@ -57,56 +57,35 @@ export function InvoicePreview({ data }: Props) {
         TAX INVOICE
       </h1>
 
-      {/* --- FROM BOX --- */}
-      <div
-        style={{
-          border: RED_BORDER,
-          padding: "10px 14px",
-          marginBottom: 12,
-        }}
-      >
+      {/* --- FROM --- */}
+      <div style={{ marginBottom: 10 }}>
         <div style={{ fontWeight: 700, marginBottom: 2 }}>
           From: {SENDER.name}
         </div>
-        <div>ABN: {SENDER.abn}</div>
-        <div>Email: {SENDER.email}</div>
-        <div>Phone: {SENDER.phone}</div>
+        <div style={{ color: "#555" }}>ABN: {SENDER.abn}</div>
+        <div style={{ color: "#555" }}>Email: {SENDER.email}</div>
+        <div style={{ color: "#555" }}>Phone: {SENDER.phone}</div>
       </div>
 
-      {/* --- TO BOX --- */}
-      <div
-        style={{
-          border: RED_BORDER,
-          padding: "10px 14px",
-          marginBottom: 16,
-        }}
-      >
-        <div style={{ fontWeight: 700 }}>
+      {/* --- TO + DETAILS (single block, matching template) --- */}
+      <div style={{ marginBottom: 20 }}>
+        <div style={{ fontWeight: 700, marginBottom: 6 }}>
           To: {data.client_name || "—"}
         </div>
-      </div>
-
-      {/* --- DETAILS LINE --- */}
-      <div
-        style={{
-          display: "flex",
-          flexWrap: "wrap",
-          gap: "8px 24px",
-          marginBottom: 16,
-        }}
-      >
-        <span>
-          <strong>Date:</strong> {data.invoice_date || "—"}
-        </span>
-        <span>
-          <strong>Invoice No:</strong> {data.invoice_no || "—"}
-        </span>
-        <span>
-          <strong>Reference:</strong> {data.job_reference || "—"}
-        </span>
-        <span>
-          <strong>Rate:</strong> ${data.rate || 0}/hour
-        </span>
+        <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+          <div>
+            <strong>Date:</strong> {data.invoice_date || "—"}
+          </div>
+          <div>
+            <strong>Invoice No:</strong> {data.invoice_no || "—"}
+          </div>
+          <div>
+            <strong>Reference:</strong> {data.job_reference || "—"}
+          </div>
+          <div>
+            <strong>Rate:</strong> ${data.rate || 0}/hour
+          </div>
+        </div>
       </div>
 
       {/* --- TABLE --- */}
@@ -114,16 +93,18 @@ export function InvoicePreview({ data }: Props) {
         style={{
           width: "100%",
           borderCollapse: "collapse",
-          marginBottom: 0,
+          border: TABLE_BORDER,
         }}
       >
         <thead>
-          <tr style={{ border: RED_BORDER }}>
+          <tr style={{ borderBottom: TABLE_BORDER }}>
             <th
               style={{
                 textAlign: "left",
-                padding: "8px 10px",
+                padding: "6px 8px",
                 fontWeight: 700,
+                fontSize: 13,
+                borderRight: TABLE_BORDER,
               }}
             >
               Description
@@ -131,9 +112,10 @@ export function InvoicePreview({ data }: Props) {
             <th
               style={{
                 textAlign: "right",
-                padding: "8px 10px",
+                padding: "6px 8px",
                 fontWeight: 700,
-                width: 130,
+                fontSize: 13,
+                width: COL_WIDTH,
               }}
             >
               Amount (AUD)
@@ -146,10 +128,10 @@ export function InvoicePreview({ data }: Props) {
               <td
                 colSpan={2}
                 style={{
-                  padding: "16px 10px",
+                  padding: "16px 8px",
                   textAlign: "center",
                   color: "#999",
-                  borderBottom: "1px solid #e0e0e0",
+                  borderBottom: "none",
                 }}
               >
                 暂无项目
@@ -157,117 +139,129 @@ export function InvoicePreview({ data }: Props) {
             </tr>
           )}
 
-          {data.items.map((item, i) => (
-            <tr key={item.id}>
-              <td
+          {data.items.map((item, i) => {
+            const isLast =
+              i === data.items.length - 1 && data.reimbursements.length === 0
+            return (
+              <tr
+                key={item.id}
                 style={{
-                  padding: "6px 10px",
-                  borderBottom:
-                    i === data.items.length - 1 &&
-                    data.reimbursements.length === 0
-                      ? "none"
-                      : "1px solid #e0e0e0",
+                  borderBottom: isLast ? TABLE_BORDER : TABLE_BORDER_LIGHT,
                 }}
               >
-                {item.description || "—"}
-              </td>
-              <td
-                style={{
-                  padding: "6px 10px",
-                  textAlign: "right",
-                  borderBottom:
-                    i === data.items.length - 1 &&
-                    data.reimbursements.length === 0
-                      ? "none"
-                      : "1px solid #e0e0e0",
-                }}
-              >
-                {item.amount > 0 ? `$${item.amount.toFixed(2)}` : "—"}
-              </td>
-            </tr>
-          ))}
+                <td
+                  style={{
+                    padding: "5px 8px",
+                    borderRight: TABLE_BORDER,
+                  }}
+                >
+                  {item.description || "—"}
+                </td>
+                <td style={{ padding: "5px 8px", textAlign: "right" }}>
+                  {item.amount > 0 ? `$${item.amount.toFixed(2)}` : "—"}
+                </td>
+              </tr>
+            )
+          })}
 
-          {data.reimbursements.map((r, i) => (
-            <tr key={r.id}>
-              <td
+          {data.reimbursements.map((r, i) => {
+            const isLast = i === data.reimbursements.length - 1
+            return (
+              <tr
+                key={r.id}
                 style={{
-                  padding: "6px 10px",
-                  borderBottom:
-                    i === data.reimbursements.length - 1
-                      ? "none"
-                      : "1px solid #e0e0e0",
+                  borderBottom: isLast ? TABLE_BORDER : TABLE_BORDER_LIGHT,
                 }}
               >
-                Reimbursement: {r.description || "—"}
-              </td>
-              <td
-                style={{
-                  padding: "6px 10px",
-                  textAlign: "right",
-                  borderBottom:
-                    i === data.reimbursements.length - 1
-                      ? "none"
-                      : "1px solid #e0e0e0",
-                }}
-              >
-                {r.amount > 0 ? `$${r.amount.toFixed(2)}` : "—"}
-              </td>
-            </tr>
-          ))}
+                <td
+                  style={{
+                    padding: "5px 8px",
+                    borderRight: TABLE_BORDER,
+                  }}
+                >
+                  Reimbursement: {r.description || "—"}
+                </td>
+                <td style={{ padding: "5px 8px", textAlign: "right" }}>
+                  {r.amount > 0 ? `$${r.amount.toFixed(2)}` : "—"}
+                </td>
+              </tr>
+            )
+          })}
+
+          {/* --- Subtotal (inside table) --- */}
+          <tr style={{ borderBottom: TABLE_BORDER_LIGHT }}>
+            <td
+              style={{
+                padding: "5px 8px",
+                fontWeight: 700,
+                borderRight: TABLE_BORDER,
+              }}
+            >
+              Subtotal
+            </td>
+            <td style={{ padding: "5px 8px", textAlign: "right", fontWeight: 700 }}>
+              ${subtotal.toFixed(2)}
+            </td>
+          </tr>
+
+          {/* --- GST (inside table) --- */}
+          <tr style={{ borderBottom: TABLE_BORDER }}>
+            <td
+              style={{
+                padding: "5px 8px",
+                borderRight: TABLE_BORDER,
+              }}
+            >
+              GST (0%)
+            </td>
+            <td style={{ padding: "5px 8px", textAlign: "right" }}>
+              $0.00
+            </td>
+          </tr>
+
+          {/* --- TOTAL (inside table) --- */}
+          <tr>
+            <td
+              style={{
+                padding: "8px 8px",
+                fontWeight: 700,
+                fontSize: 15,
+                borderRight: TABLE_BORDER,
+              }}
+            >
+              TOTAL
+            </td>
+            <td
+              style={{
+                padding: "8px 8px",
+                textAlign: "right",
+                fontWeight: 700,
+                fontSize: 15,
+              }}
+            >
+              ${total.toFixed(2)}
+            </td>
+          </tr>
         </tbody>
       </table>
 
-      {/* --- SUBTOTAL / GST BOX --- */}
-      <div
-        style={{
-          border: RED_BORDER,
-          borderTop: "none",
-          padding: "8px 10px",
-          textAlign: "right",
-        }}
-      >
-        <div style={{ marginBottom: 2 }}>
-          <strong>Subtotal</strong>{" "}
-          <span style={{ display: "inline-block", width: 90, textAlign: "right" }}>
-            ${subtotal.toFixed(2)}
-          </span>
+      {/* --- BANK --- */}
+      <div style={{ marginTop: 22 }}>
+        <div>
+          <strong>Bank:</strong> {BANK.bank}
         </div>
         <div>
-          <strong>GST (0%)</strong>{" "}
-          <span style={{ display: "inline-block", width: 90, textAlign: "right" }}>
-            $0.00
-          </span>
+          <strong>BSB:</strong> {BANK.bsb}
         </div>
-      </div>
-
-      {/* --- TOTAL (outside box) --- */}
-      <div
-        style={{
-          textAlign: "right",
-          fontSize: 16,
-          fontWeight: 700,
-          padding: "10px 10px 4px 10px",
-        }}
-      >
-        TOTAL{" "}
-        <span style={{ display: "inline-block", width: 90, textAlign: "right" }}>
-          ${total.toFixed(2)}
-        </span>
-      </div>
-
-      {/* --- BANK BOX --- */}
-      <div
-        style={{
-          border: RED_BORDER,
-          padding: "10px 14px",
-          marginTop: 16,
-        }}
-      >
-        <div>Bank: {BANK.bank}</div>
-        <div>BSB: {BANK.bsb}</div>
-        <div>Account: {BANK.account}</div>
-        <div>Account name: {BANK.name}</div>
-        <div>Reference: {BANK.reference}</div>
+        <div>
+          <strong>Account:</strong> {BANK.account}
+        </div>
+        <div>
+          <strong>Account name:</strong> {BANK.name}
+        </div>
+        <div>
+          <strong>Reference:</strong> {BANK.reference}
+        </div>
       </div>
     </div>
   )
