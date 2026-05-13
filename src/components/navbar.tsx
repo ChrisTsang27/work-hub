@@ -5,6 +5,7 @@ import { ThemeToggle } from "@/components/theme-toggle"
 
 const pageTitles: Record<string, string> = {
   "/dashboard": "首页",
+  "/dashboard/invoices": "发票",
 }
 
 export function Navbar() {
