@@ -30,7 +30,7 @@ export function InvoicePreview({ data }: Props) {
         fontFamily: "Arial, Helvetica, sans-serif",
         maxWidth: 700,
         margin: "0 auto",
-        padding: "24px 20px",
+        padding: "32px 28px",
         color: "#333",
         fontSize: 13,
         lineHeight: 1.6,
@@ -93,7 +93,7 @@ export function InvoicePreview({ data }: Props) {
             <th
               style={{
                 textAlign: "left",
-                padding: "6px 8px",
+                padding: "8px 10px",
                 fontWeight: 700,
                 fontSize: 13,
                 borderRight: TABLE_BORDER,
@@ -104,7 +104,7 @@ export function InvoicePreview({ data }: Props) {
             <th
               style={{
                 textAlign: "right",
-                padding: "6px 8px",
+                padding: "8px 10px",
                 fontWeight: 700,
                 fontSize: 13,
                 width: COL_WIDTH,
@@ -143,13 +143,13 @@ export function InvoicePreview({ data }: Props) {
               >
                 <td
                   style={{
-                    padding: "5px 8px",
+                    padding: "7px 10px",
                     borderRight: TABLE_BORDER,
                   }}
                 >
                   {item.description || "—"}
                 </td>
-                <td style={{ padding: "5px 8px", textAlign: "right" }}>
+                <td style={{ padding: "7px 10px", textAlign: "right" }}>
                   {item.amount > 0 ? `$${item.amount.toFixed(2)}` : "—"}
                 </td>
               </tr>
@@ -167,13 +167,13 @@ export function InvoicePreview({ data }: Props) {
               >
                 <td
                   style={{
-                    padding: "5px 8px",
+                    padding: "7px 10px",
                     borderRight: TABLE_BORDER,
                   }}
                 >
                   Reimbursement: {r.description || "—"}
                 </td>
-                <td style={{ padding: "5px 8px", textAlign: "right" }}>
+                <td style={{ padding: "7px 10px", textAlign: "right" }}>
                   {r.amount > 0 ? `$${r.amount.toFixed(2)}` : "—"}
                 </td>
               </tr>
@@ -184,14 +184,14 @@ export function InvoicePreview({ data }: Props) {
           <tr style={{ borderBottom: TABLE_BORDER_LIGHT }}>
             <td
               style={{
-                padding: "5px 8px",
+                padding: "7px 10px",
                 fontWeight: 700,
                 borderRight: TABLE_BORDER,
               }}
             >
               Subtotal
             </td>
-            <td style={{ padding: "5px 8px", textAlign: "right", fontWeight: 700 }}>
+            <td style={{ padding: "7px 10px", textAlign: "right", fontWeight: 700 }}>
               ${subtotal.toFixed(2)}
             </td>
           </tr>
@@ -200,13 +200,13 @@ export function InvoicePreview({ data }: Props) {
           <tr style={{ borderBottom: TABLE_BORDER }}>
             <td
               style={{
-                padding: "5px 8px",
+                padding: "7px 10px",
                 borderRight: TABLE_BORDER,
               }}
             >
               GST (0%)
             </td>
-            <td style={{ padding: "5px 8px", textAlign: "right" }}>
+            <td style={{ padding: "7px 10px", textAlign: "right" }}>
               $0.00
             </td>
           </tr>
@@ -215,7 +215,7 @@ export function InvoicePreview({ data }: Props) {
           <tr>
             <td
               style={{
-                padding: "8px 8px",
+                padding: "10px 10px",
                 fontWeight: 700,
                 fontSize: 15,
                 borderRight: TABLE_BORDER,
@@ -225,7 +225,7 @@ export function InvoicePreview({ data }: Props) {
             </td>
             <td
               style={{
-                padding: "8px 8px",
+                padding: "10px 10px",
                 textAlign: "right",
                 fontWeight: 700,
                 fontSize: 15,

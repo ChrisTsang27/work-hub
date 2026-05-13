@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { motion, AnimatePresence } from "framer-motion"
 import { Plus, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -73,11 +74,12 @@ export function InvoiceForm({ data, onChange }: Props) {
   return (
     <div className="space-y-6">
       {/* Sender info — read only */}
-      <div className="rounded-lg border bg-muted/30 p-4 space-y-1 text-sm">
-        <p className="font-semibold">From: {SENDER.name}</p>
-        <p className="text-muted-foreground">ABN: {SENDER.abn}</p>
-        <p className="text-muted-foreground">Email: {SENDER.email}</p>
-        <p className="text-muted-foreground">Phone: {SENDER.phone}</p>
+      {/* Sender info — read only */}
+      <div className="rounded-xl border-l-4 border-l-primary border bg-slate-50/60 dark:bg-slate-950/60 p-4 space-y-1 text-sm shadow-xs transition-all">
+        <p className="font-semibold text-slate-900 dark:text-slate-100">From: {SENDER.name}</p>
+        <p className="text-muted-foreground text-xs">ABN: {SENDER.abn}</p>
+        <p className="text-muted-foreground text-xs">Email: {SENDER.email}</p>
+        <p className="text-muted-foreground text-xs">Phone: {SENDER.phone}</p>
       </div>
 
       <Separator />
@@ -152,10 +154,10 @@ export function InvoiceForm({ data, onChange }: Props) {
       {/* Line items */}
       <div className="space-y-3">
         <div className="flex items-center justify-between">
-          <Label>Line Items（服务项目）</Label>
-          <Button variant="outline" size="sm" onClick={addItem}>
-            <Plus className="mr-1 h-3 w-3" />
-            添加
+          <Label className="text-sm font-semibold">Line Items（服务项目）</Label>
+          <Button variant="outline" size="sm" className="h-8 rounded-lg gap-1 shadow-xs" onClick={addItem}>
+            <Plus className="h-3.5 w-3.5" />
+            <span>添加</span>
           </Button>
         </div>
 
@@ -163,33 +165,42 @@ export function InvoiceForm({ data, onChange }: Props) {
           <p className="text-sm text-muted-foreground">暂无服务项目</p>
         )}
 
-        {data.items.map((item) => (
-          <div key={item.id} className="flex gap-2 items-start">
-            <Input
-              className="flex-1"
-              placeholder="Description"
-              value={item.description}
-              onChange={(e) => updateItem(item.id, "description", e.target.value)}
-            />
-            <Input
-              className="w-28"
-              type="number"
-              placeholder="Amount"
-              value={item.amount || ""}
-              onChange={(e) =>
-                updateItem(item.id, "amount", Number(e.target.value))
-              }
-            />
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-10 w-10 shrink-0"
-              onClick={() => removeItem(item.id)}
+        <AnimatePresence initial={false}>
+          {data.items.map((item) => (
+            <motion.div 
+              key={item.id} 
+              initial={{ opacity: 0, height: 0, scale: 0.95 }}
+              animate={{ opacity: 1, height: "auto", scale: 1 }}
+              exit={{ opacity: 0, height: 0, scale: 0.95 }}
+              transition={{ duration: 0.2 }}
+              className="flex gap-2 items-center pt-1"
             >
-              <Trash2 className="h-4 w-4 text-muted-foreground" />
-            </Button>
-          </div>
-        ))}
+              <Input
+                className="flex-1 rounded-lg"
+                placeholder="Description"
+                value={item.description}
+                onChange={(e) => updateItem(item.id, "description", e.target.value)}
+              />
+              <Input
+                className="w-28 rounded-lg"
+                type="number"
+                placeholder="Amount"
+                value={item.amount || ""}
+                onChange={(e) =>
+                  updateItem(item.id, "amount", Number(e.target.value))
+                }
+              />
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-9 w-9 shrink-0 hover:bg-destructive/10 hover:text-destructive transition-all rounded-lg"
+                onClick={() => removeItem(item.id)}
+              >
+                <Trash2 className="h-4 w-4 text-muted-foreground hover:text-destructive transition-colors" />
+              </Button>
+            </motion.div>
+          ))}
+        </AnimatePresence>
       </div>
 
       <Separator />
@@ -197,10 +208,10 @@ export function InvoiceForm({ data, onChange }: Props) {
       {/* Reimbursements */}
       <div className="space-y-3">
         <div className="flex items-center justify-between">
-          <Label>Reimbursements（报销）</Label>
-          <Button variant="outline" size="sm" onClick={addReimbursement}>
-            <Plus className="mr-1 h-3 w-3" />
-            添加
+          <Label className="text-sm font-semibold">Reimbursements（报销）</Label>
+          <Button variant="outline" size="sm" className="h-8 rounded-lg gap-1 shadow-xs" onClick={addReimbursement}>
+            <Plus className="h-3.5 w-3.5" />
+            <span>添加</span>
           </Button>
         </div>
 
@@ -208,35 +219,44 @@ export function InvoiceForm({ data, onChange }: Props) {
           <p className="text-sm text-muted-foreground">暂无报销项目</p>
         )}
 
-        {data.reimbursements.map((r) => (
-          <div key={r.id} className="flex gap-2 items-start">
-            <Input
-              className="flex-1"
-              placeholder="Description"
-              value={r.description}
-              onChange={(e) =>
-                updateReimb(r.id, "description", e.target.value)
-              }
-            />
-            <Input
-              className="w-28"
-              type="number"
-              placeholder="Amount"
-              value={r.amount || ""}
-              onChange={(e) =>
-                updateReimb(r.id, "amount", Number(e.target.value))
-              }
-            />
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-10 w-10 shrink-0"
-              onClick={() => removeReimb(r.id)}
+        <AnimatePresence initial={false}>
+          {data.reimbursements.map((r) => (
+            <motion.div 
+              key={r.id} 
+              initial={{ opacity: 0, height: 0, scale: 0.95 }}
+              animate={{ opacity: 1, height: "auto", scale: 1 }}
+              exit={{ opacity: 0, height: 0, scale: 0.95 }}
+              transition={{ duration: 0.2 }}
+              className="flex gap-2 items-center pt-1"
             >
-              <Trash2 className="h-4 w-4 text-muted-foreground" />
-            </Button>
-          </div>
-        ))}
+              <Input
+                className="flex-1 rounded-lg"
+                placeholder="Description"
+                value={r.description}
+                onChange={(e) =>
+                  updateReimb(r.id, "description", e.target.value)
+                }
+              />
+              <Input
+                className="w-28 rounded-lg"
+                type="number"
+                placeholder="Amount"
+                value={r.amount || ""}
+                onChange={(e) =>
+                  updateReimb(r.id, "amount", Number(e.target.value))
+                }
+              />
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-9 w-9 shrink-0 hover:bg-destructive/10 hover:text-destructive transition-all rounded-lg"
+                onClick={() => removeReimb(r.id)}
+              >
+                <Trash2 className="h-4 w-4 text-muted-foreground hover:text-destructive transition-colors" />
+              </Button>
+            </motion.div>
+          ))}
+        </AnimatePresence>
       </div>
     </div>
   )
