@@ -25,6 +25,7 @@ const DEFAULT: InvoiceData = {
   }),
   job_reference: "",
   rate: 50,
+  bank_reference: "",
   items: [{ id: "1", description: "", amount: 0 }],
   reimbursements: [],
   subtotal: 0,

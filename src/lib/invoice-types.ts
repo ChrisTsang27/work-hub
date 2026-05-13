@@ -17,6 +17,7 @@ export interface InvoiceData {
   invoice_date: string
   job_reference: string
   rate: number
+  bank_reference?: string
   items: LineItem[]
   reimbursements: Reimbursement[]
   subtotal: number

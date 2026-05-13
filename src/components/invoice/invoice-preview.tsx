@@ -13,14 +13,6 @@ const SENDER = {
   phone: "0452 503 527",
 } as const
 
-const BANK = {
-  bank: "ANZ",
-  bsb: "014002",
-  account: "404036579",
-  name: "Zhi Zeng",
-  reference: "website building service fees",
-} as const
-
 interface Props {
   data: InvoiceData
 }
@@ -246,22 +238,12 @@ export function InvoicePreview({ data }: Props) {
       </table>
 
       {/* --- BANK --- */}
-      <div style={{ marginTop: 22 }}>
-        <div>
-          <strong>Bank:</strong> {BANK.bank}
-        </div>
-        <div>
-          <strong>BSB:</strong> {BANK.bsb}
-        </div>
-        <div>
-          <strong>Account:</strong> {BANK.account}
-        </div>
-        <div>
-          <strong>Account name:</strong> {BANK.name}
-        </div>
-        <div>
-          <strong>Reference:</strong> {BANK.reference}
-        </div>
+      <div style={{ marginTop: 18, fontSize: 13, lineHeight: 1.4 }}>
+        <div><strong>Bank:</strong> ANZ</div>
+        <div><strong>BSB:</strong> 014002</div>
+        <div><strong>Account:</strong> 404036579</div>
+        <div><strong>Account name:</strong> Zhi Zeng</div>
+        <div><strong>Reference:</strong> {data.bank_reference || ""}</div>
       </div>
     </div>
   )

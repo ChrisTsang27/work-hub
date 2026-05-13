@@ -39,7 +39,7 @@ export function downloadInvoicePDF(data: InvoiceData) {
   td.amount-col { text-align: right; }
   .row { border-bottom: 1px solid #ccc; }
   .row-last { border-bottom: 1px solid #333; }
-  .bank { margin-top: 22px; }
+  .bank { margin-top: 18px; font-size: 13px; line-height: 1.4; }
   @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
 </style>
 </head>
@@ -104,7 +104,7 @@ export function downloadInvoicePDF(data: InvoiceData) {
   <div><strong>BSB:</strong> 014002</div>
   <div><strong>Account:</strong> 404036579</div>
   <div><strong>Account name:</strong> Zhi Zeng</div>
-  <div><strong>Reference:</strong> website building service fees</div>
+  <div><strong>Reference:</strong> ${escapeHtml(data.bank_reference || "")}</div>
 </div>
 
 <script>window.onload = () => window.print();</script>

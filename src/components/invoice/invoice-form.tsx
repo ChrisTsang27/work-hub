@@ -135,6 +135,16 @@ export function InvoiceForm({ data, onChange }: Props) {
             />
           </div>
         </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="bank_reference">Bank Reference（银行备注）</Label>
+          <Input
+            id="bank_reference"
+            value={data.bank_reference ?? ""}
+            onChange={(e) => update("bank_reference", e.target.value)}
+            placeholder="website building service fees"
+          />
+        </div>
       </div>
 
       <Separator />
