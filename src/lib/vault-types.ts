@@ -83,7 +83,19 @@ export function setVaultPin(pin: string): void {
 
 export function verifyVaultPin(pin: string): boolean {
   const saved = getVaultPin()
-  // 默认初始体验密码为 0527 (基于发送者邮箱中提及的代表数字)，或匹配用户已设定的专属 PIN
-  if (!saved) return pin === "0527"
+  // 默认初始体验密码为 0527 或 6 位版本的 052700
+  if (!saved) return pin === "0527" || pin === "052700"
+
+  // 兼容逻辑：如果本地存储的是旧版 4 位密码，允许比对前 4 位一致即可通过，并自动无感升级为输入的完整 6 位密码
+  if (saved.length === 4 && pin.startsWith(saved)) {
+    setVaultPin(pin)
+    return true
+  }
+
   return pin === saved
+}
+
+export function clearVaultPin(): void {
+  if (typeof window === "undefined") return
+  localStorage.removeItem("work_hub_vault_pin")
 }

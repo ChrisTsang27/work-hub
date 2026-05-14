@@ -15,6 +15,7 @@ import {
   Folder,
   Eye,
   Lock,
+  Key,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -38,6 +39,7 @@ import {
   type VaultItem,
   type VaultItemType,
   generateVaultId,
+  clearVaultPin,
 } from "@/lib/vault-types"
 
 interface Props {
@@ -217,6 +219,20 @@ export function VaultDashboard({
         </div>
 
         <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            onClick={() => {
+              if (window.confirm("确定要重新设定专属密码吗？系统将安全退出至锁定界面，供您初始化全新 6 位 PIN 码。")) {
+                clearVaultPin()
+                onLockNow()
+              }
+            }}
+            className="h-10 rounded-xl border-slate-200 dark:border-slate-800 hover:bg-amber-500/10 hover:text-amber-600 dark:hover:text-amber-400 gap-1.5 px-3 text-xs font-medium transition-colors"
+          >
+            <Key className="h-3.5 w-3.5" />
+            <span>重新设定密码</span>
+          </Button>
+
           <Button
             onClick={() => setIsAddOpen(true)}
             className="h-10 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground gap-1.5 shadow-md px-4"

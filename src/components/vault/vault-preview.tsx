@@ -12,7 +12,8 @@ import {
   FileCode,
   Image as ImageIcon,
 } from "lucide-react"
-import { Button } from "@/components/ui/button"
+import { Button, buttonVariants } from "@/components/ui/button"
+import { cn } from "@/lib/utils"
 import type { VaultItem } from "@/lib/vault-types"
 
 interface Props {
@@ -78,32 +79,33 @@ export function VaultPreview({ item, onClose }: Props) {
           )}
 
           {item.type === "url" && (
-            <Button
-              size="sm"
-              variant="outline"
-              asChild
-              className="h-7 gap-1 px-2.5 text-xs rounded-lg hover:bg-primary/10 hover:text-primary transition-all"
+            <a
+              href={item.content}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={cn(
+                buttonVariants({ variant: "outline", size: "sm" }),
+                "h-7 gap-1 px-2.5 text-xs rounded-lg hover:bg-primary/10 hover:text-primary transition-all"
+              )}
             >
-              <a href={item.content} target="_blank" rel="noopener noreferrer">
-                <ExternalLink className="h-3 w-3" />
-                <span>安全访问</span>
-              </a>
-            </Button>
+              <ExternalLink className="h-3 w-3" />
+              <span>安全访问</span>
+            </a>
           )}
 
           {(item.type === "image" || item.type === "pdf" || item.type === "document") &&
             item.content.startsWith("data:") && (
-              <Button
-                size="sm"
-                variant="outline"
-                asChild
-                className="h-7 gap-1 px-2.5 text-xs rounded-lg hover:bg-primary/10 hover:text-primary transition-all"
+              <a
+                href={item.content}
+                download={getDownloadFilename()}
+                className={cn(
+                  buttonVariants({ variant: "outline", size: "sm" }),
+                  "h-7 gap-1 px-2.5 text-xs rounded-lg hover:bg-primary/10 hover:text-primary transition-all"
+                )}
               >
-                <a href={item.content} download={getDownloadFilename()}>
-                  <Download className="h-3 w-3" />
-                  <span>本地取回</span>
-                </a>
-              </Button>
+                <Download className="h-3 w-3" />
+                <span>本地取回</span>
+              </a>
             )}
         </div>
       </div>
@@ -129,12 +131,15 @@ export function VaultPreview({ item, onClose }: Props) {
             <p className="text-sm font-semibold text-slate-900 dark:text-slate-100 mb-4 break-all">
               {item.content}
             </p>
-            <Button asChild className="rounded-xl w-full gap-2 shadow-sm">
-              <a href={item.content} target="_blank" rel="noopener noreferrer">
-                <span>在独立沙箱标签页中打开</span>
-                <ExternalLink className="h-3.5 w-3.5" />
-              </a>
-            </Button>
+            <a
+              href={item.content}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={cn(buttonVariants({ variant: "default" }), "rounded-xl w-full gap-2 shadow-sm")}
+            >
+              <span>在独立沙箱标签页中打开</span>
+              <ExternalLink className="h-3.5 w-3.5" />
+            </a>
           </div>
         )}
 
@@ -157,11 +162,13 @@ export function VaultPreview({ item, onClose }: Props) {
               <iframe src={item.content} className="w-full h-full border-none">
                 <div className="flex flex-col items-center justify-center h-full p-8 text-center bg-slate-50 dark:bg-slate-950 text-slate-500">
                   <p>当前浏览器环境已禁用内嵌 PDF 预览</p>
-                  <Button asChild variant="outline" size="sm" className="mt-3 rounded-lg">
-                    <a href={item.content} download={getDownloadFilename()}>
-                      直接下载 PDF 文件阅读
-                    </a>
-                  </Button>
+                  <a
+                    href={item.content}
+                    download={getDownloadFilename()}
+                    className={cn(buttonVariants({ variant: "outline", size: "sm" }), "mt-3 rounded-lg")}
+                  >
+                    直接下载 PDF 文件阅读
+                  </a>
                 </div>
               </iframe>
             </object>
@@ -180,12 +187,14 @@ export function VaultPreview({ item, onClose }: Props) {
             <p className="text-sm font-semibold text-slate-900 dark:text-slate-100 mb-4">
               {item.title}
             </p>
-            <Button asChild className="rounded-xl w-full gap-2 shadow-sm">
-              <a href={item.content} download={getDownloadFilename()}>
-                <Download className="h-3.5 w-3.5" />
-                <span>安全解密下载至本地盘</span>
-              </a>
-            </Button>
+            <a
+              href={item.content}
+              download={getDownloadFilename()}
+              className={cn(buttonVariants({ variant: "default" }), "rounded-xl w-full gap-2 shadow-sm")}
+            >
+              <Download className="h-3.5 w-3.5" />
+              <span>安全解密下载至本地盘</span>
+            </a>
           </div>
         )}
       </div>
