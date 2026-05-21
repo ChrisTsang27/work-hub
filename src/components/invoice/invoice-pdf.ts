@@ -40,7 +40,14 @@ export function downloadInvoicePDF(data: InvoiceData) {
   .row { border-bottom: 1px solid #ccc; }
   .row-last { border-bottom: 1px solid #333; }
   .bank { margin-top: 18px; font-size: 13px; line-height: 1.4; }
-  @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+  @page { margin: 0; }
+  @media print { 
+    body { 
+      -webkit-print-color-adjust: exact; 
+      print-color-adjust: exact; 
+      padding: 20mm; 
+    } 
+  }
 </style>
 </head>
 <body>
