@@ -1,6 +1,7 @@
 export interface LineItem {
   id: string
   description: string
+  hours?: number
   amount: number
 }
 

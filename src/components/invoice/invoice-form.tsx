@@ -30,7 +30,11 @@ const SENDER = {
 export function InvoiceForm({ data, onChange }: Props) {
   function update<K extends keyof InvoiceData>(key: K, value: InvoiceData[K]) {
     const next = { ...data, [key]: value }
-    if (key === "items" || key === "reimbursements") {
+    if (key === "rate") {
+      const rate = value as number
+      next.items = next.items.map(i => i.hours !== undefined ? { ...i, amount: i.hours * rate } : i)
+    }
+    if (key === "items" || key === "reimbursements" || key === "rate") {
       next.subtotal = calcSubtotal(next.items, next.reimbursements)
       next.total = next.subtotal // GST=0
     }
@@ -44,10 +48,10 @@ export function InvoiceForm({ data, onChange }: Props) {
       { id: generateId(), description: "", amount: 0 },
     ])
   }
-  function updateItem(id: string, field: keyof LineItem, val: string | number) {
+  function updateItemObj(id: string, updates: Partial<LineItem>) {
     update(
       "items",
-      data.items.map((i) => (i.id === id ? { ...i, [field]: val } : i))
+      data.items.map((i) => (i.id === id ? { ...i, ...updates } : i))
     )
   }
   function removeItem(id: string) {
@@ -179,17 +183,24 @@ export function InvoiceForm({ data, onChange }: Props) {
                 className="flex-1 rounded-lg"
                 placeholder="Description"
                 value={item.description}
-                onChange={(e) => updateItem(item.id, "description", e.target.value)}
+                onChange={(e) => updateItemObj(item.id, { description: e.target.value })}
               />
-              <Input
-                className="w-28 rounded-lg"
-                type="number"
-                placeholder="Amount"
-                value={item.amount || ""}
-                onChange={(e) =>
-                  updateItem(item.id, "amount", Number(e.target.value))
-                }
-              />
+              <div className="flex items-center gap-2 shrink-0">
+                <Input
+                  className="w-20 rounded-lg text-center"
+                  type="number"
+                  placeholder="Hours"
+                  value={item.hours === undefined ? "" : item.hours}
+                  onChange={(e) => {
+                    const hrs = Number(e.target.value)
+                    updateItemObj(item.id, { hours: hrs, amount: hrs * (data.rate || 0) })
+                  }}
+                  title="工作时长 (Hours)"
+                />
+                <div className="w-20 text-sm font-medium text-slate-600 dark:text-slate-400 text-right pr-2 shrink-0">
+                  ${(item.amount || 0).toFixed(2)}
+                </div>
+              </div>
               <Button
                 variant="ghost"
                 size="icon"
