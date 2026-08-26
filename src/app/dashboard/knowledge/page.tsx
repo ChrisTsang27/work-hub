@@ -335,7 +335,7 @@ interface BilingualDetail {
 
       {/* 条目详情：左右分栏（左中右英） */}
       <Dialog open={detail !== null} onOpenChange={(open) => !open && setDetail(null)}>
-        <DialogContent className="max-w-4xl max-h-[85vh] flex flex-col">
+        <DialogContent className="w-[94vw] max-w-6xl max-h-[90vh] flex flex-col">
           <DialogHeader>
             <DialogTitle className="flex items-center justify-between pr-8">
               <span className="flex items-center gap-2">
