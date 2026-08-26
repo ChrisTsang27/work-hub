@@ -6,6 +6,12 @@ import { BookOpen, RefreshCw, Rocket, Loader2, FileText } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import { cn } from "@/lib/utils"
 
 interface Job {
@@ -21,6 +27,7 @@ interface Job {
 
 interface KbItem {
   id: number
+  slug: string
   title_zh: string | null
   title_en: string | null
   price: string | null
@@ -51,6 +58,8 @@ export default function KnowledgePage() {
   const [items, setItems] = useState<KbItem[]>([])
   const [loadingItems, setLoadingItems] = useState(false)
   const [toast, setToast] = useState<string | null>(null)
+  const [detail, setDetail] = useState<{ title: string; content: string } | null>(null)
+  const [loadingDetail, setLoadingDetail] = useState(false)
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   const showToast = (msg: string) => {
@@ -98,6 +107,19 @@ export default function KnowledgePage() {
     loadJobs()
     loadItems()
   }, [loadJobs, loadItems])
+
+  const openDetail = async (item: KbItem) => {
+    setLoadingDetail(true)
+    setDetail({ title: item.title_zh || item.title_en || item.slug, content: "" })
+    try {
+      const d = await api(`/api/knowledge/items/${item.slug}`)
+      setDetail({ title: d.title_zh || d.title_en || item.slug, content: d.content ?? "" })
+    } catch (e) {
+      setDetail({ title: item.title_zh || item.title_en || item.slug, content: `加载失败: ${(e as Error).message}` })
+    } finally {
+      setLoadingDetail(false)
+    }
+  }
 
   const triggerCrawl = async () => {
     setTriggering(true)
@@ -239,7 +261,11 @@ export default function KnowledgePage() {
             </p>
           ) : (
             items.map((it) => (
-              <div key={it.id} className="flex items-center justify-between rounded-md border px-3 py-2 text-sm">
+              <div
+                key={it.id}
+                onClick={() => openDetail(it)}
+                className="flex items-center justify-between rounded-md border px-3 py-2 text-sm hover:bg-accent/50 cursor-pointer transition-colors"
+              >
                 <div className="min-w-0">
                   <p className="font-medium truncate">{it.title_zh || it.title_en}</p>
                   <p className="text-xs text-muted-foreground truncate">
@@ -266,6 +292,27 @@ export default function KnowledgePage() {
           )}
         </CardContent>
       </Card>
+
+      {/* 条目详情 */}
+      <Dialog open={detail !== null} onOpenChange={(open) => !open && setDetail(null)}>
+        <DialogContent className="max-w-2xl max-h-[80vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 pr-8">
+              <FileText className="h-5 w-5" />
+              {detail?.title ?? "详情"}
+              {loadingDetail && <Loader2 className="h-4 w-4 animate-spin" />}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="overflow-y-auto rounded-md bg-muted/40 p-4 text-sm leading-relaxed">
+            <pre className="whitespace-pre-wrap font-sans">
+              {detail?.content || (loadingDetail ? "加载中…" : "（无内容）")}
+            </pre>
+          </div>
+          <Button variant="outline" size="sm" className="self-end" onClick={() => setDetail(null)}>
+            关闭
+          </Button>
+        </DialogContent>
+      </Dialog>
     </motion.div>
   )
 }
