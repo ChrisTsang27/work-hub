@@ -3,7 +3,7 @@
 import { useSession, signOut } from "next-auth/react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Home, FileText, LogOut, User, Lock } from "lucide-react"
+import { Home, FileText, LogOut, User, Lock, BookOpen } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
@@ -13,6 +13,7 @@ const navItems = [
   { href: "/dashboard", label: "首页", icon: Home },
   { href: "/dashboard/invoices", label: "发票", icon: FileText },
   { href: "/dashboard/vault", label: "保险箱", icon: Lock },
+  { href: "/dashboard/knowledge", label: "知识库", icon: BookOpen },
 ]
 
 export function Sidebar() {
