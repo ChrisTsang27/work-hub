@@ -58,6 +58,18 @@ export default function KnowledgePage() {
   const [items, setItems] = useState<KbItem[]>([])
   const [loadingItems, setLoadingItems] = useState(false)
   const [toast, setToast] = useState<string | null>(null)
+  const [sources, setSources] = useState<Source[]>([])
+  const [sourceName, setSourceName] = useState("")
+  const [sourceUrl, setSourceUrl] = useState("")
+
+interface Source {
+  id: number
+  name: string
+  url: string
+  source_type: string
+  detected_type: string | null
+  enabled: number
+}
 interface KbSection {
   name: string
   content: string
@@ -100,6 +112,56 @@ interface KbDetail {
     }
   }, [])
 
+  const loadSources = useCallback(async () => {
+    try {
+      setSources(await api("/api/knowledge/sources"))
+    } catch (e) {
+      /* 静默 */
+    }
+  }, [])
+
+  const addSource = async () => {
+    const url = sourceUrl.trim()
+    if (!url) return showToast("请输入网址")
+    try {
+      await api("/api/knowledge/sources", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ name: sourceName.trim() || url.split("//")[1]?.slice(0, 40) || url, url }),
+      })
+      setSourceName("")
+      setSourceUrl("")
+      await loadSources()
+      showToast("源已添加")
+    } catch (e) {
+      showToast(`添加失败: ${(e as Error).message}`)
+    }
+  }
+
+  const toggleSource = async (s: Source) => {
+    try {
+      await api(`/api/knowledge/sources/${s.id}`, {
+        method: "PUT",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ name: s.name, url: s.url, source_type: s.source_type, enabled: !s.enabled }),
+      })
+      await loadSources()
+    } catch (e) {
+      showToast(`操作失败: ${(e as Error).message}`)
+    }
+  }
+
+  const deleteSource = async (s: Source) => {
+    if (!confirm(`删除源「${s.name}」？`)) return
+    try {
+      await api(`/api/knowledge/sources/${s.id}`, { method: "DELETE" })
+      await loadSources()
+      showToast("已删除")
+    } catch (e) {
+      showToast(`删除失败: ${(e as Error).message}`)
+    }
+  }
+
   // 有运行中的任务时每 5 秒轮询
   useEffect(() => {
     const hasRunning = jobs.some((j) => j.status === "pending" || j.status === "running")
@@ -120,7 +182,8 @@ interface KbDetail {
   useEffect(() => {
     loadJobs()
     loadItems()
-  }, [loadJobs, loadItems])
+    loadSources()
+  }, [loadJobs, loadItems, loadSources])
 
   const openDetail = async (item: KbItem) => {
     // 缓存：点过一次直接秒开
@@ -173,6 +236,23 @@ interface KbDetail {
       })
       showToast("任务已创建，正在抓取…")
       setUrl("")
+      await loadJobs()
+    } catch (e) {
+      showToast(`创建任务失败: ${(e as Error).message}`)
+    } finally {
+      setTriggering(false)
+    }
+  }
+
+  const triggerSource = async (sid: number) => {
+    setTriggering(true)
+    try {
+      await api("/api/knowledge/jobs", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ scope: `source:${sid}`, mode }),
+      })
+      showToast("任务已创建，正在抓取…")
       await loadJobs()
     } catch (e) {
       showToast(`创建任务失败: ${(e as Error).message}`)
@@ -252,6 +332,59 @@ interface KbDetail {
           <p className="text-xs text-muted-foreground">
             增量 = 只处理有变化的内容（推荐）｜全量 = 重新抓取所有内容
           </p>
+        </CardContent>
+      </Card>
+
+      {/* 源管理 */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <BookOpen className="h-4 w-4" /> 抓取源
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="flex flex-wrap items-center gap-2">
+            <Input
+              placeholder="源名称（可选）"
+              value={sourceName}
+              onChange={(e) => setSourceName(e.target.value)}
+              className="max-w-[180px]"
+            />
+            <Input
+              placeholder="网址（如 https://example.com）"
+              value={sourceUrl}
+              onChange={(e) => setSourceUrl(e.target.value)}
+              className="max-w-sm"
+            />
+            <Button onClick={addSource}>添加源</Button>
+          </div>
+          <div className="space-y-2">
+            {sources.length === 0 ? (
+              <p className="text-sm text-muted-foreground">暂无源，添加一个吧</p>
+            ) : (
+              sources.map((s) => (
+                <div key={s.id} className="flex items-center justify-between rounded-md border px-3 py-2 text-sm">
+                  <div className="min-w-0">
+                    <p className="font-medium truncate">{s.name}</p>
+                    <p className="text-xs text-muted-foreground truncate">
+                      {s.url} · {s.detected_type || s.source_type}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <Button variant="outline" size="sm" onClick={() => triggerSource(s.id)} disabled={triggering || !s.enabled}>
+                      抓取
+                    </Button>
+                    <Button variant="ghost" size="sm" onClick={() => toggleSource(s)}>
+                      {s.enabled ? "停用" : "启用"}
+                    </Button>
+                    <Button variant="ghost" size="sm" onClick={() => deleteSource(s)} className="text-red-500">
+                      删除
+                    </Button>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
         </CardContent>
       </Card>
 
