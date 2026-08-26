@@ -58,24 +58,23 @@ export default function KnowledgePage() {
   const [items, setItems] = useState<KbItem[]>([])
   const [loadingItems, setLoadingItems] = useState(false)
   const [toast, setToast] = useState<string | null>(null)
-interface BilingualSection {
-  key: string
-  name_zh: string
-  name_en: string
-  zh: string
-  en: string
+interface KbSection {
+  name: string
+  content: string
 }
 
-interface BilingualDetail {
-  title_en: string
-  title_zh: string
+interface KbDetail {
+  title: string
   price: string
-  sections: BilingualSection[]
+  category: string
+  tags: string[]
+  sections: KbSection[]
 }
 
-  const [detail, setDetail] = useState<BilingualDetail | null>(null)
+  const [detail, setDetail] = useState<KbDetail | null>(null)
   const [loadingDetail, setLoadingDetail] = useState(false)
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const detailCacheRef = useRef<Map<string, KbDetail>>(new Map())
 
   const showToast = (msg: string) => {
     setToast(msg)
@@ -124,37 +123,39 @@ interface BilingualDetail {
   }, [loadJobs, loadItems])
 
   const openDetail = async (item: KbItem) => {
+    // 缓存：点过一次直接秒开
+    const cached = detailCacheRef.current.get(item.slug)
+    if (cached) {
+      setDetail(cached)
+      return
+    }
     setLoadingDetail(true)
     setDetail({
-      title_en: item.title_en || item.slug,
-      title_zh: item.title_zh || item.slug,
+      title: item.title_en || item.title_zh || item.slug,
       price: item.price ? `${item.price} ${item.currency ?? ""}` : "",
+      category: item.category || "",
+      tags: [],
       sections: [],
     })
     try {
       const d = await api(`/api/knowledge/items/${item.slug}`)
       const b = d.bilingual
-      if (b) {
-        setDetail({
-          title_en: b.title_en || item.title_en || item.slug,
-          title_zh: b.title_zh || item.title_zh || item.slug,
-          price: b.price || "",
-          sections: b.sections ?? [],
-        })
-      } else {
-        setDetail({
-          title_en: d.title_en || item.title_en || item.slug,
-          title_zh: d.title_zh || item.title_zh || item.slug,
-          price: "",
-          sections: [],
-        })
+      const nd: KbDetail = {
+        title: b?.title || d.title_en || d.title_zh || item.title_en || item.slug,
+        price: b?.price || (item.price ? `${item.price} ${item.currency ?? ""}` : ""),
+        category: b?.category || d.category || item.category || "",
+        tags: b?.tags ?? [],
+        sections: b?.sections ?? [],
       }
+      detailCacheRef.current.set(item.slug, nd)
+      setDetail(nd)
     } catch (e) {
       setDetail({
-        title_en: item.title_en || item.slug,
-        title_zh: item.title_zh || item.slug,
+        title: item.title_en || item.title_zh || item.slug,
         price: "",
-        sections: [],
+        category: "",
+        tags: [],
+        sections: [{ name: "提示", content: `加载失败: ${(e as Error).message}` }],
       })
     } finally {
       setLoadingDetail(false)
@@ -333,14 +334,14 @@ interface BilingualDetail {
         </CardContent>
       </Card>
 
-      {/* 条目详情：左右分栏（左中右英） */}
+      {/* 条目详情：单栏（中文节标题 + 源语言内容） */}
       <Dialog open={detail !== null} onOpenChange={(open) => !open && setDetail(null)}>
-        <DialogContent className="w-[94vw] max-w-[94vw] sm:max-w-6xl max-h-[90vh] flex flex-col">
+        <DialogContent className="w-[94vw] max-w-[94vw] sm:max-w-3xl max-h-[90vh] flex flex-col">
           <DialogHeader>
             <DialogTitle className="flex items-center justify-between pr-8">
               <span className="flex items-center gap-2">
                 <FileText className="h-5 w-5 shrink-0" />
-                <span className="truncate">{detail?.title_zh || "详情"}</span>
+                <span className="truncate">{detail?.title || "详情"}</span>
               </span>
               {detail?.price && (
                 <span className="shrink-0 text-lg font-bold text-primary">
@@ -349,39 +350,24 @@ interface BilingualDetail {
               )}
               {loadingDetail && <Loader2 className="h-4 w-4 animate-spin shrink-0" />}
             </DialogTitle>
-            {detail?.title_en && (
-              <p className="text-sm text-muted-foreground truncate">{detail.title_en}</p>
+            {detail?.category && (
+              <p className="text-sm text-muted-foreground">{detail.category}</p>
             )}
           </DialogHeader>
-          <div className="grid flex-1 grid-cols-1 gap-4 overflow-y-auto md:grid-cols-2">
-            {/* 中文栏 */}
-            <div className="rounded-md border bg-muted/30 p-4">
-              <h3 className="mb-2 text-sm font-bold text-muted-foreground">中文</h3>
-              <div className="space-y-4">
-                {detail?.sections.map((s) => (
-                  <div key={s.key}>
-                    <h4 className="mb-1 text-sm font-semibold">{s.name_zh}</h4>
-                    <p className="whitespace-pre-wrap text-sm leading-relaxed">
-                      {s.zh || "—"}
-                    </p>
-                  </div>
-                ))}
+          <div className="flex-1 space-y-4 overflow-y-auto rounded-md border bg-muted/30 p-4">
+            {detail?.sections.map((s, i) => (
+              <div key={i}>
+                <h4 className="mb-1 text-sm font-semibold">{s.name}</h4>
+                <p className="whitespace-pre-wrap text-sm leading-relaxed text-muted-foreground">
+                  {s.content || "—"}
+                </p>
               </div>
-            </div>
-            {/* 英文栏 */}
-            <div className="rounded-md border bg-muted/30 p-4">
-              <h3 className="mb-2 text-sm font-bold text-muted-foreground">English</h3>
-              <div className="space-y-4">
-                {detail?.sections.map((s) => (
-                  <div key={s.key}>
-                    <h4 className="mb-1 text-sm font-semibold">{s.name_en}</h4>
-                    <p className="whitespace-pre-wrap text-sm leading-relaxed">
-                      {s.en || "—"}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            </div>
+            ))}
+            {detail?.sections.length === 0 && (
+              <p className="text-sm text-muted-foreground">
+                {loadingDetail ? "加载中…" : "（无内容）"}
+              </p>
+            )}
           </div>
           <Button variant="outline" size="sm" className="self-end" onClick={() => setDetail(null)}>
             关闭
