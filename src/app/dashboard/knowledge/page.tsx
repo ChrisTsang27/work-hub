@@ -62,6 +62,14 @@ export default function KnowledgePage() {
   const [sourceName, setSourceName] = useState("")
   const [sourceUrl, setSourceUrl] = useState("")
   const [changes, setChanges] = useState<Change[]>([])
+  const [promotions, setPromotions] = useState<Promotion[]>([])
+  const [expandedGift, setExpandedGift] = useState<string | null>(null)
+
+interface Promotion {
+  gift: string
+  count: number
+  products: { slug: string; title: string; price: string; currency: string }[]
+}
 
 interface Change {
   product_id: string
@@ -138,6 +146,14 @@ interface KbDetail {
     }
   }, [])
 
+  const loadPromotions = useCallback(async () => {
+    try {
+      setPromotions(await api("/api/knowledge/promotions"))
+    } catch (e) {
+      /* 静默 */
+    }
+  }, [])
+
   const addSource = async () => {
     const url = sourceUrl.trim()
     if (!url) return showToast("请输入网址")
@@ -202,7 +218,8 @@ interface KbDetail {
     loadItems()
     loadSources()
     loadChanges()
-  }, [loadJobs, loadItems, loadSources, loadChanges])
+    loadPromotions()
+  }, [loadJobs, loadItems, loadSources, loadChanges, loadPromotions])
 
   const openDetail = async (item: KbItem) => {
     // 缓存：点过一次直接秒开
@@ -407,44 +424,48 @@ interface KbDetail {
         </CardContent>
       </Card>
 
-      {/* 促销变动 */}
+      {/* 促销总览（按赠品聚合） */}
       <Card>
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2">
-            <TrendingUp className="h-4 w-4" /> 促销变动
+            <TrendingUp className="h-4 w-4" /> 促销总览
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-2">
-          {changes.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
-              暂无价格或赠品变动。抓取后如有变化会显示在这里。
-            </p>
+          {promotions.length === 0 ? (
+            <p className="text-sm text-muted-foreground">暂无促销信息</p>
           ) : (
-            changes.map((c) => (
-              <div key={c.product_id} className="rounded-md border px-3 py-2 text-sm">
-                <div className="flex items-center justify-between">
-                  <span className="font-medium">产品 #{c.product_id}</span>
-                  <span className="text-xs text-muted-foreground">{c.at?.slice(0, 16)}</span>
+            promotions.map((p) => {
+              const expanded = expandedGift === p.gift
+              return (
+                <div key={p.gift} className="rounded-md border overflow-hidden">
+                  <button
+                    type="button"
+                    onClick={() => setExpandedGift(expanded ? null : p.gift)}
+                    className="flex w-full items-center justify-between px-3 py-2 text-sm hover:bg-accent/50 transition-colors"
+                  >
+                    <span className="font-medium text-left">
+                      🎁 {p.gift}
+                    </span>
+                    <span className="shrink-0 text-xs text-muted-foreground">
+                      {p.count} 款 {expanded ? "▲" : "▼"}
+                    </span>
+                  </button>
+                  {expanded && (
+                    <div className="border-t px-3 py-2 space-y-1 bg-muted/30">
+                      {p.products.map((prod) => (
+                        <div key={prod.slug} className="flex items-center justify-between text-xs">
+                          <span className="truncate">{prod.title}</span>
+                          <span className="shrink-0 text-muted-foreground">
+                            {prod.price} {prod.currency}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
-                <div className="mt-1 space-y-1 text-xs">
-                  {c.change.price && (
-                    <p className="text-red-600">
-                      价格变动：{c.change.price.old || "—"} → {c.change.price.new || "—"}
-                    </p>
-                  )}
-                  {c.change.gifts && c.change.gifts.removed.length > 0 && (
-                    <p className="text-orange-600">
-                      赠品移除：{c.change.gifts.removed.slice(0, 3).join("、")}
-                    </p>
-                  )}
-                  {c.change.gifts && c.change.gifts.added.length > 0 && (
-                    <p className="text-green-600">
-                      赠品新增：{c.change.gifts.added.slice(0, 3).join("、")}
-                    </p>
-                  )}
-                </div>
-              </div>
-            ))
+              )
+            })
           )}
         </CardContent>
       </Card>
