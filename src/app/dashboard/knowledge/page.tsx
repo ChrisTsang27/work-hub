@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react"
 import { motion } from "framer-motion"
-import { BookOpen, RefreshCw, Rocket, Loader2, FileText } from "lucide-react"
+import { BookOpen, RefreshCw, Rocket, Loader2, FileText, TrendingUp } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -61,6 +61,16 @@ export default function KnowledgePage() {
   const [sources, setSources] = useState<Source[]>([])
   const [sourceName, setSourceName] = useState("")
   const [sourceUrl, setSourceUrl] = useState("")
+  const [changes, setChanges] = useState<Change[]>([])
+
+interface Change {
+  product_id: string
+  change: {
+    price?: { old: string | null; new: string | null }
+    gifts?: { added: string[]; removed: string[] }
+  }
+  at: string
+}
 
 interface Source {
   id: number
@@ -115,6 +125,14 @@ interface KbDetail {
   const loadSources = useCallback(async () => {
     try {
       setSources(await api("/api/knowledge/sources"))
+    } catch (e) {
+      /* 静默 */
+    }
+  }, [])
+
+  const loadChanges = useCallback(async () => {
+    try {
+      setChanges(await api("/api/knowledge/compare"))
     } catch (e) {
       /* 静默 */
     }
@@ -183,7 +201,8 @@ interface KbDetail {
     loadJobs()
     loadItems()
     loadSources()
-  }, [loadJobs, loadItems, loadSources])
+    loadChanges()
+  }, [loadJobs, loadItems, loadSources, loadChanges])
 
   const openDetail = async (item: KbItem) => {
     // 缓存：点过一次直接秒开
@@ -385,6 +404,48 @@ interface KbDetail {
               ))
             )}
           </div>
+        </CardContent>
+      </Card>
+
+      {/* 促销变动 */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <TrendingUp className="h-4 w-4" /> 促销变动
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          {changes.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              暂无价格或赠品变动。抓取后如有变化会显示在这里。
+            </p>
+          ) : (
+            changes.map((c) => (
+              <div key={c.product_id} className="rounded-md border px-3 py-2 text-sm">
+                <div className="flex items-center justify-between">
+                  <span className="font-medium">产品 #{c.product_id}</span>
+                  <span className="text-xs text-muted-foreground">{c.at?.slice(0, 16)}</span>
+                </div>
+                <div className="mt-1 space-y-1 text-xs">
+                  {c.change.price && (
+                    <p className="text-red-600">
+                      价格变动：{c.change.price.old || "—"} → {c.change.price.new || "—"}
+                    </p>
+                  )}
+                  {c.change.gifts && c.change.gifts.removed.length > 0 && (
+                    <p className="text-orange-600">
+                      赠品移除：{c.change.gifts.removed.slice(0, 3).join("、")}
+                    </p>
+                  )}
+                  {c.change.gifts && c.change.gifts.added.length > 0 && (
+                    <p className="text-green-600">
+                      赠品新增：{c.change.gifts.added.slice(0, 3).join("、")}
+                    </p>
+                  )}
+                </div>
+              </div>
+            ))
+          )}
         </CardContent>
       </Card>
 
