@@ -377,6 +377,20 @@ export async function getDashboard(): Promise<DashboardRow[]> {
   const vMap = latest(valuations ?? [], "date")
   const fMap = latest(financials ?? [], "report_period")
 
+  // 每只股票近 30 交易日收盘（升序，迷你走势线）
+  const byCode = new Map<string, { d: string; c: number | null }[]>()
+  for (const r of valuations ?? []) {
+    if (r.date == null) continue
+    const arr = byCode.get(r.code) ?? []
+    arr.push({ d: String(r.date), c: r.close })
+    byCode.set(r.code, arr)
+  }
+  const priceMap = new Map<string, (number | null)[]>()
+  for (const [code, arr] of byCode) {
+    arr.sort((a, b) => (a.d < b.d ? -1 : a.d > b.d ? 1 : 0))
+    priceMap.set(code, arr.slice(-30).map((x) => x.c ?? null))
+  }
+
   // 情绪汇总
   const sentiMap = new Map<string, SentimentSummary>()
   const recentMap = new Map<string, string>()
@@ -410,6 +424,7 @@ export async function getDashboard(): Promise<DashboardRow[]> {
       revenue_yoy_latest: f?.revenue_yoy ?? null,
       profit_yoy_latest: f?.profit_yoy ?? null,
       sentiment: sentiMap.get(s.code),
+      recent_prices: priceMap.get(s.code),
     }
   })
 }

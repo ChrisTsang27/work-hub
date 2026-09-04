@@ -84,6 +84,8 @@ export interface DashboardRow {
   revenue_yoy_latest?: number | null
   profit_yoy_latest?: number | null
   sentiment?: SentimentSummary
+  /** 近 30 交易日收盘（升序，迷你走势线用） */
+  recent_prices?: (number | null)[]
 }
 
 export interface EventItem {
