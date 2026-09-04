@@ -1,8 +1,8 @@
 "use client"
 
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 import { motion } from "framer-motion"
-import { TrendingUp, RefreshCw, Loader2, AlertTriangle, Sparkles } from "lucide-react"
+import { TrendingUp, RefreshCw, Loader2, AlertTriangle, Sparkles, ChevronDown } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import {
@@ -25,7 +25,9 @@ import type {
   DashboardRow,
   StockDetail,
   AlertItem,
+  SentimentSummary,
 } from "@/lib/stock-types"
+import StockChart from "@/components/stock-chart"
 
 const SORT_OPTIONS = [
   { value: "pe_ttm", label: "PE(TTM)" },
@@ -36,6 +38,10 @@ const SORT_OPTIONS = [
   { value: "market_cap_yi", label: "市值" },
   { value: "change_pct", label: "涨跌幅" },
 ]
+
+// A股配色：红涨绿跌
+const COL = { up: "#ef4444", down: "#10b981", flat: "#9ca3af", line: "#f59e0b" }
+const SENTI_COL: Record<string, string> = { 利好: COL.up, 利空: COL.down, 中性: COL.flat }
 
 function pct(v?: number | null) {
   if (v == null) return "—"
@@ -52,12 +58,28 @@ function peText(v?: number | null) {
   if (v < 0) return <span className="text-emerald-600">亏损</span>
   return num(v, 1)
 }
-function sentimentBadge(s?: { bias?: string; counts?: { 利好: number; 利空: number; 中性: number }; total?: number }) {
-  if (!s || !s.total) return <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">暂无</span>
-  const cls = s.bias === "偏多" ? "bg-red-100 text-red-700" : s.bias === "偏空" ? "bg-emerald-100 text-emerald-700" : "bg-muted text-muted-foreground"
+
+function sentiChip(s: string, n: number) {
+  const cls = s === "利好" ? "bg-red-100 text-red-700" : s === "利空" ? "bg-emerald-100 text-emerald-700" : "bg-muted text-muted-foreground"
   return (
-    <span className={cn("rounded-full px-2 py-0.5 text-xs whitespace-nowrap", cls)}>
-      {s.bias} {s.counts!.利好}/{s.counts!.利空}/{s.counts!.中性}
+    <span className={cn("inline-flex items-center gap-0.5 rounded-full px-2 py-0.5 text-xs whitespace-nowrap", cls)}>
+      <span className={cn("h-1.5 w-1.5 rounded-full", s === "利好" ? "bg-red-500" : s === "利空" ? "bg-emerald-500" : "bg-muted-foreground")} />
+      {s} {n}
+    </span>
+  )
+}
+
+function sentimentBadge(s?: SentimentSummary) {
+  if (!s || s.total === 0) return <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">暂无</span>
+  return (
+    <span
+      className="inline-flex items-center gap-1"
+      title={s.recent_summary ?? undefined}
+      style={{ cursor: s.recent_summary ? "help" : "default" }}
+    >
+      {sentiChip("利好", s.counts.利好)}
+      {sentiChip("利空", s.counts.利空)}
+      {sentiChip("中性", s.counts.中性)}
     </span>
   )
 }
@@ -65,6 +87,110 @@ function sentiBadge(s?: string | null) {
   if (!s) return null
   const cls = s === "利好" ? "bg-red-100 text-red-700" : s === "利空" ? "bg-emerald-100 text-emerald-700" : "bg-muted text-muted-foreground"
   return <span className={cn("rounded-full px-2 py-0.5 text-xs whitespace-nowrap", cls)}>{s}</span>
+}
+
+// ---------- ECharts option 构造 ----------
+function pieOption(counts: { 利好: number; 利空: number; 中性: number }) {
+  const data = [
+    { name: "利好", value: counts.利好, itemStyle: { color: COL.up } },
+    { name: "利空", value: counts.利空, itemStyle: { color: COL.down } },
+    { name: "中性", value: counts.中性, itemStyle: { color: COL.flat } },
+  ].filter((d) => d.value > 0)
+  return {
+    tooltip: { trigger: "item", formatter: "{b}：{c} 条（{d}%）" },
+    legend: { bottom: 0, icon: "circle", itemWidth: 8, itemHeight: 8, textStyle: { fontSize: 11 } },
+    series: [
+      {
+        type: "pie",
+        radius: ["45%", "72%"],
+        center: ["50%", "44%"],
+        itemStyle: { borderRadius: 4, borderColor: "#fff", borderWidth: 1.5 },
+        label: { show: true, formatter: "{b}\n{c}", fontSize: 10 },
+        data,
+      },
+    ],
+  }
+}
+
+function priceOption(t?: StockDetail["trend"]) {
+  return {
+    tooltip: { trigger: "axis" },
+    grid: { left: 8, right: 8, top: 26, bottom: 4, containLabel: true },
+    xAxis: { type: "category", data: t?.dates ?? [], boundaryGap: false },
+    yAxis: { type: "value", scale: true },
+    series: [
+      {
+        name: "收盘价",
+        type: "line",
+        data: t?.closes ?? [],
+        smooth: true,
+        showSymbol: false,
+        lineStyle: { width: 2, color: COL.line },
+        itemStyle: { color: COL.line },
+        areaStyle: { opacity: 0.08, color: COL.line },
+      },
+    ],
+  }
+}
+
+function valOption(t?: StockDetail["trend"]) {
+  return {
+    tooltip: { trigger: "axis" },
+    legend: { top: 0, icon: "circle", itemWidth: 8, itemHeight: 8, textStyle: { fontSize: 11 } },
+    grid: { left: 8, right: 8, top: 30, bottom: 4, containLabel: true },
+    xAxis: { type: "category", data: t?.dates ?? [], boundaryGap: false },
+    yAxis: [
+      { type: "value", name: "PE", scale: true, nameTextStyle: { fontSize: 10 } },
+      { type: "value", name: "PB", scale: true, splitLine: { show: false }, nameTextStyle: { fontSize: 10 } },
+    ],
+    series: [
+      { name: "PE(TTM)", type: "line", data: t?.pes ?? [], yAxisIndex: 0, smooth: true, showSymbol: false, lineStyle: { width: 2, color: COL.up }, itemStyle: { color: COL.up } },
+      { name: "PB", type: "line", data: t?.pbs ?? [], yAxisIndex: 1, smooth: true, showSymbol: false, lineStyle: { width: 2, color: "#3b82f6" }, itemStyle: { color: "#3b82f6" } },
+    ],
+  }
+}
+
+function finOption(f?: StockDetail["fin_trend"]) {
+  return {
+    tooltip: { trigger: "axis", valueFormatter: (v: any) => (v == null ? "—" : Number(v).toFixed(1) + "%") },
+    legend: { top: 0, icon: "circle", itemWidth: 8, itemHeight: 8, textStyle: { fontSize: 11 } },
+    grid: { left: 8, right: 8, top: 30, bottom: 4, containLabel: true },
+    xAxis: { type: "category", data: f?.periods ?? [] },
+    yAxis: [
+      { type: "value", axisLabel: { formatter: "{value}%" } },
+      { type: "value", scale: true, splitLine: { show: false }, axisLabel: { formatter: "{value}%" } },
+    ],
+    series: [
+      { name: "营收同比", type: "bar", data: f?.revenue_yoy ?? [], barMaxWidth: 16, itemStyle: { color: COL.line } },
+      { name: "利润同比", type: "bar", data: f?.profit_yoy ?? [], barMaxWidth: 16, itemStyle: { color: "#3b82f6" } },
+      { name: "ROE", type: "line", data: f?.roe ?? [], yAxisIndex: 1, smooth: true, showSymbol: true, symbolSize: 5, lineStyle: { width: 2, color: COL.up }, itemStyle: { color: COL.up } },
+    ],
+  }
+}
+
+// ---------- 详情弹窗小组件 ----------
+function SentimentGroup({ title, items, accent }: { title: string; items: StockDetail["recent_events"]; accent: string }) {
+  if (items.length === 0) return null
+  return (
+    <details className="group rounded-md border px-3 py-2" open={title === "利空"}>
+      <summary className="flex cursor-pointer list-none items-center gap-1.5 text-xs font-medium">
+        <span className={cn("h-2 w-2 rounded-full", accent)} />
+        {title} · {items.length} 条
+        <ChevronDown className="ml-auto h-3.5 w-3.5 transition-transform group-open:rotate-180" />
+      </summary>
+      <ul className="mt-2 space-y-2">
+        {items.map((e, i) => (
+          <li key={i} className="flex items-start gap-2 text-xs">
+            <span className="mt-0.5 shrink-0 text-muted-foreground">{e.ts?.slice(0, 10)}</span>
+            <div className="min-w-0 flex-1">
+              <div className="truncate font-medium">{e.title}</div>
+              {e.summary && <div className="mt-0.5 text-muted-foreground">💬 {e.summary}</div>}
+            </div>
+          </li>
+        ))}
+      </ul>
+    </details>
+  )
 }
 
 export default function StockPage() {
@@ -199,6 +325,24 @@ export default function StockPage() {
 
   const busy = collecting || enriching
 
+  // 详情弹窗派生数据
+  const groupedEvents = useMemo(() => {
+    if (!detail) return { 利好: [], 利空: [], 中性: [] } as Record<string, StockDetail["recent_events"]>
+    const g: Record<string, StockDetail["recent_events"]> = { 利好: [], 利空: [], 中性: [] }
+    for (const e of detail.recent_events) {
+      const s = e.sentiment
+      if (s && s in g) g[s].push(e)
+    }
+    return g
+  }, [detail])
+  const detailCounts = useMemo(
+    () => ({ 利好: groupedEvents.利好.length, 利空: groupedEvents.利空.length, 中性: groupedEvents.中性.length }),
+    [groupedEvents]
+  )
+  const hasEvents = detailCounts.利好 + detailCounts.利空 + detailCounts.中性 > 0
+  const hasTrend = (detail?.trend?.dates.length ?? 0) > 1
+  const hasFin = (detail?.fin_trend?.periods.length ?? 0) > 0
+
   return (
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }} className="space-y-6">
       <div className="flex items-center justify-between">
@@ -311,12 +455,12 @@ export default function StockPage() {
               </table>
             </div>
           )}
-          <p className="mt-2 text-xs text-muted-foreground">点击某行查看详情（人话解读 + 事件时间线）。右上「抓取」= 拉东财数据，「提炼」= DeepSeek 翻译成人话，均手动触发。</p>
+          <p className="mt-2 text-xs text-muted-foreground">点击某行查看详情（人话解读 + 走势图 + 事件时间线）。情绪徽章悬停可看最近一条解读。</p>
         </CardContent>
       </Card>
 
       <Dialog open={detail !== null} onOpenChange={(open) => !open && setDetail(null)}>
-        <DialogContent className="max-h-[90vh] w-[94vw] overflow-y-auto sm:max-w-4xl">
+        <DialogContent className="max-h-[92vh] w-[94vw] overflow-y-auto sm:max-w-4xl">
           <DialogHeader>
             <DialogTitle>
               {detail?.name}（{detail?.fundamentals.code}）
@@ -325,7 +469,8 @@ export default function StockPage() {
           </DialogHeader>
           {loadingDetail && <div className="flex items-center gap-2 py-4 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" /> 加载中…</div>}
           {detail && !loadingDetail && (
-            <div className="space-y-4">
+            <div className="space-y-5">
+              {/* 指标卡 */}
               <div className="flex flex-wrap gap-6">
                 <div><div className="text-xs text-muted-foreground">收盘</div><div className={cn("text-lg font-semibold", sign(detail.fundamentals.change_pct))}>{num(detail.fundamentals.close)}</div></div>
                 <div><div className="text-xs text-muted-foreground">涨跌幅</div><div className={cn("text-lg font-semibold", sign(detail.fundamentals.change_pct))}>{pct(detail.fundamentals.change_pct)}</div></div>
@@ -334,6 +479,47 @@ export default function StockPage() {
                 <div><div className="text-xs text-muted-foreground">市值(亿)</div><div className="text-lg font-semibold">{num(detail.fundamentals.market_cap_yi, 1)}</div></div>
               </div>
 
+              {/* 情绪区：环形图 + 分组明细 */}
+              {hasEvents && (
+                <div>
+                  <h4 className="mb-2 text-sm font-semibold">消息面情绪（近 {detail.recent_events.length} 条）</h4>
+                  <div className="grid gap-3 sm:grid-cols-[220px_1fr]">
+                    <div className="rounded-md border p-2">
+                      <StockChart option={pieOption(detailCounts)} height={170} />
+                    </div>
+                    <div className="space-y-2">
+                      <SentimentGroup title="利好" items={groupedEvents.利好} accent="bg-red-500" />
+                      <SentimentGroup title="利空" items={groupedEvents.利空} accent="bg-emerald-500" />
+                      <SentimentGroup title="中性" items={groupedEvents.中性} accent="bg-muted-foreground" />
+                      {!hasEvents && <p className="text-sm text-muted-foreground">暂无已提炼的情绪，先点「提炼」生成人话解读</p>}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* 走势图 */}
+              {hasTrend && (
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div>
+                    <h4 className="mb-1 text-sm font-semibold">股价走势（近 {detail.trend!.dates.length} 日）</h4>
+                    <StockChart option={priceOption(detail.trend)} height={230} />
+                  </div>
+                  <div>
+                    <h4 className="mb-1 text-sm font-semibold">估值趋势（PE / PB）</h4>
+                    <StockChart option={valOption(detail.trend)} height={230} />
+                  </div>
+                </div>
+              )}
+
+              {/* 财务趋势 */}
+              {hasFin && (
+                <div>
+                  <h4 className="mb-1 text-sm font-semibold">财务趋势（营收/利润同比 · ROE）</h4>
+                  <StockChart option={finOption(detail.fin_trend)} height={230} />
+                </div>
+              )}
+
+              {/* 全量事件时间线 */}
               <div>
                 <h4 className="mb-2 text-sm font-semibold">事件时间线（近 {detail.recent_events.length} 条）</h4>
                 {detail.recent_events.length === 0 ? (
