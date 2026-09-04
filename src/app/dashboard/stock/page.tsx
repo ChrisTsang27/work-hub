@@ -316,7 +316,7 @@ export default function StockPage() {
       </Card>
 
       <Dialog open={detail !== null} onOpenChange={(open) => !open && setDetail(null)}>
-        <DialogContent className="max-h-[90vh] w-[94vw] max-w-3xl overflow-y-auto">
+        <DialogContent className="max-h-[90vh] w-[94vw] overflow-y-auto sm:max-w-4xl">
           <DialogHeader>
             <DialogTitle>
               {detail?.name}（{detail?.fundamentals.code}）
