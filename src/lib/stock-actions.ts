@@ -358,8 +358,9 @@ export async function getDashboard(): Promise<DashboardRow[]> {
     .in("code", codes)
   const { data: llm } = await supabase
     .from("llm_items")
-    .select("code,type,sentiment")
+    .select("code,type,sentiment,summary")
     .in("code", codes)
+    .order("created_at", { ascending: false })
 
   const latest = <T extends { code: string }, K extends keyof T>(
     rows: T[] | null,
@@ -378,18 +379,21 @@ export async function getDashboard(): Promise<DashboardRow[]> {
 
   // 情绪汇总
   const sentiMap = new Map<string, SentimentSummary>()
+  const recentMap = new Map<string, string>()
   for (const row of llm ?? []) {
     if (!row.sentiment || !["利好", "利空", "中性"].includes(row.sentiment)) continue
     const s = sentiMap.get(row.code) ?? { counts: { 利好: 0, 利空: 0, 中性: 0 }, total: 0, bias: "中性" }
     s.counts[row.sentiment as keyof typeof s.counts]++
     s.total++
     sentiMap.set(row.code, s)
+    if (row.summary && !recentMap.has(row.code)) recentMap.set(row.code, row.summary) // 倒序第一跳即最新
   }
   for (const s of sentiMap.values()) {
     if (s.total === 0) continue
     const { 利好, 利空 } = s.counts
     s.bias = 利好 > 利空 ? "偏多" : 利空 > 利好 ? "偏空" : "中性"
   }
+  for (const [code, s] of sentiMap) s.recent_summary = recentMap.get(code) ?? null
 
   return (stocks ?? []).map((s) => {
     const v = vMap.get(s.code)
@@ -423,6 +427,36 @@ export async function getStockDetail(code: string): Promise<StockDetail> {
     .order("date", { ascending: false })
     .limit(1)
   const v = valuations?.[0]
+
+  // 估值历史序列（近 120 条，图表用，转升序）
+  const { data: valHist } = await supabase
+    .from("valuations")
+    .select("date,close,pe_ttm,pb")
+    .eq("code", code)
+    .order("date", { ascending: false })
+    .limit(120)
+  const valAsc = [...(valHist ?? [])].reverse()
+  const trend: StockDetail["trend"] = {
+    dates: valAsc.map((r) => String(r.date).slice(0, 10)),
+    closes: valAsc.map((r) => (r.close == null ? null : Number(r.close))),
+    pes: valAsc.map((r) => (r.pe_ttm == null ? null : Number(r.pe_ttm))),
+    pbs: valAsc.map((r) => (r.pb == null ? null : Number(r.pb))),
+  }
+
+  // 财务序列（最近 12 期，图表用，转升序）
+  const { data: finHist } = await supabase
+    .from("financials")
+    .select("report_period,revenue_yoy,profit_yoy,roe")
+    .eq("code", code)
+    .order("report_period", { ascending: false })
+    .limit(12)
+  const finAsc = [...(finHist ?? [])].reverse()
+  const fin_trend: StockDetail["fin_trend"] = {
+    periods: finAsc.map((r) => String(r.report_period).slice(0, 7)),
+    revenue_yoy: finAsc.map((r) => (r.revenue_yoy == null ? null : Number(r.revenue_yoy))),
+    profit_yoy: finAsc.map((r) => (r.profit_yoy == null ? null : Number(r.profit_yoy))),
+    roe: finAsc.map((r) => (r.roe == null ? null : Number(r.roe))),
+  }
 
   const { data: news } = await supabase
     .from("news")
@@ -481,6 +515,8 @@ export async function getStockDetail(code: string): Promise<StockDetail> {
       market_cap_yi: v?.market_cap != null ? v.market_cap / 1e8 : null,
     },
     recent_events: events.slice(0, 20),
+    trend,
+    fin_trend,
   }
 }
 

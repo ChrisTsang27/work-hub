@@ -68,6 +68,8 @@ export interface SentimentSummary {
   counts: { 利好: number; 利空: number; 中性: number }
   total: number
   bias: string
+  /** 最近一条人话摘要（悬停 tooltip 用） */
+  recent_summary?: string | null
 }
 
 export interface DashboardRow {
@@ -105,6 +107,20 @@ export interface StockDetail {
     market_cap_yi?: number | null
   }
   recent_events: EventItem[]
+  /** 估值历史序列（近 ~120 天，画走势/估值趋势图） */
+  trend?: {
+    dates: string[]
+    closes: (number | null)[]
+    pes: (number | null)[]
+    pbs: (number | null)[]
+  }
+  /** 财务序列（各报告期，画财务趋势图） */
+  fin_trend?: {
+    periods: string[]
+    revenue_yoy: (number | null)[]
+    profit_yoy: (number | null)[]
+    roe: (number | null)[]
+  }
 }
 
 export interface AlertItem {
